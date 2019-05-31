@@ -1,0 +1,16 @@
+#!/bin/bash
+
+bin=$(basename $0)
+
+if [ "$#" -ne 1 ]; then
+	echo "$bin: invalid number of arguments"
+	echo "there must be one repository link"
+	exit
+fi
+
+git init
+git add .
+git commit -m "initial commit"
+git remote add origin "$1"
+git remote -v
+git push origin master

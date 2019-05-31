@@ -1,0 +1,173 @@
+#!/bin/bash
+
+# make all directives, including arguments, flags?
+# eg. multix -p $profile to invoke rather than multix $profile
+
+config=/home/ctm/share/conf/multix/multixrc
+verbose=0
+profile=""
+rmflags=" "
+bin=$(basename $0)
+
+generate_profiles() {
+	if [ $verbose -eq 1 ] ; then
+		echo generating profiles
+	fi
+	
+	cd $multix_profile_part
+	for rc in *; do
+		cat "$multix_common" "$multix_profile_part$rc" > "$multix_profile$rc"
+		chmod +x "$multix_profile$rc"
+		if [ $verbose -eq 1 ]; then
+			echo "created profile '$rc'"
+		fi
+	done
+	cd - > /dev/null
+}
+
+help() {
+	echo "Usage: $bin [OPTIONS...] ARGUMENT"
+	echo
+	echo "Starts an X session using specified profile"
+	echo
+	echo "Options:"
+	echo "  -c FILENAME	use FILENAME as the config file (defaults to ~/.config/multix/multixrc)"
+	echo "  -p profile	use profile as selected profile for session (required for 'create', 'delete', 'edit-stub', and 'start')"
+	echo "  -v		set verbosity"
+	echo
+	echo "Arguments (only one may be specified):"
+	echo "  create		create new profile for multix in \$EDITOR"
+	echo "  delete		delete specified profile"
+	echo "  edit-stub	open the stub file for profile in \$EDITOR"
+	echo "  edit-common	open common file in \$EDITOR"
+	echo "  generate	generates multix profiles"
+	echo "  		automatically ran after 'create', 'edit-stub', or 'edit-common'"
+	echo "  help		display this message"
+	echo "  list		list multix profiles"
+	echo "  start		start an X session using specified profile"
+	echo
+	echo "See \`doc multix\` for more information"
+}
+
+list_profiles() {
+	for prof in $multix_profile/*; do
+		echo $(basename "$prof")
+	done
+}
+
+source_config() {
+	source $config
+
+	if [ $verbose -eq 1 ] ; then
+		echo root: $multix_root
+		echo common: $multix_common
+		echo profile stubs: $multix_profile_part
+		echo complete profiles: $multix_profile
+		echo
+	fi
+}
+
+# if there are no arguments, the script was invoked incorrectly
+if [ $# -lt 1 ]; then
+	echo "$bin: not enough parameters"
+	echo
+	help
+	exit 1
+fi
+
+# use getopts to parse options
+while getopts ":c:p:v" option; do
+	case "${option}" in
+		c)
+			config="$OPTARG"
+			;;
+		p)
+			profile="$OPTARG"
+			;;
+		v)
+			verbose=1
+			rmflags=" -v "
+			;;
+		\?)
+			echo "$bin: invalid option -$OPTARG"
+			echo
+			help
+			exit 1
+			;;
+		:)
+			echo "$bin: option -$OPTARG requires an argument"
+			echo
+			help
+			exit 1
+			;;
+	esac
+done
+
+# ensure config file exists
+if [ -f $config ]; then
+	source_config
+else
+	echo "$bin: config file $config does not exist"
+	echo
+	exit 1
+fi
+
+shift $((OPTIND-1))
+
+# parse argument
+# TODO: error checking
+case "$1" in
+	create)
+		"$EDITOR" "$multix_profile_part/$profile"
+		generate_profiles
+		exit
+		;;
+	delete)
+		if [ ! -f "$multix_profile_part/$profile" ]; then
+			echo "profile for '$profile' does not exist"
+			exit 1
+		fi
+		
+		rm "$rmflags" "$multix_profile_part/$profile"
+		rm "$rmflags" "$multix_profile/$profile"
+		exit
+		;;
+	edit-common)
+		"$EDITOR" "$multix_common"
+		generate_profiles
+		exit
+		;;
+	edit-stub)
+		"$EDITOR" "$multix_profile_part$profile"
+		generate_profiles
+		;;
+	fake)
+		echo "nothing has been done successfully"
+		exit
+		;;
+	generate)
+		generate_profiles
+		exit
+		;;
+	help)
+		help
+		exit
+		;;
+	list)
+		list_profiles
+		exit
+		;;
+	start)
+		if [ -f $multix_profile/$profile ]; then
+			startx "$multix_profile$profile"
+		else
+			echo "$bin: profile '$arg' does not exist in $multix_profile"
+			exit 1
+		fi
+		exit
+		;;
+	*)
+		# TODO: error message
+		exit
+		;;
+esac

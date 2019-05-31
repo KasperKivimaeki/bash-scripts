@@ -1,0 +1,148 @@
+#!/bin/bash
+# mon0 = right mon1 = left mon2 = middle
+
+# TODO: implement single (s) optiopn. take a number arg for no of mons
+sleep_delay="10m"
+fake=0
+verbose=0
+bin=$(basename $0)
+single=0
+monitors=1
+fehargs="--bg-scale -z "
+loopcount=0
+end_loop=0
+#pidfile=
+
+function help()
+{
+	echo "Usage: $bin [OPTIONS...] ARGUMENTS ..."
+	echo
+	echo "randomizes wallpapers on a per-monitor basis using feh"
+	echo
+	echo "OPTIONS:"
+	echo "	-d TIMEFMT	sets delay for the wallpapers to change"
+	echo "			TIMEFMT must be a format recognized by sleep(1)"
+	echo "	-h		display this text and exit"
+	echo "	-f		sets fake mode (all programming logic occurs, but the wallpapers are NOT set"
+	echo "			this is mostly used for debugging"
+	echo "  -m MONS		the number of monitors used"
+	echo "			MONS is an integer which corresponds to the number of mons"
+	echo "	-s		only specify one argument, which is used for all monitors"
+	echo "	-v		sets verbosity. this will print most variables"
+	echo "			throughout the script as they are created / used,"
+	echo "			and is useful for debugging"
+	echo
+	echo "The ARGUMENTS are any number of directories / TODO:files with images"
+	echo "loadable by feh(1). The program will randomize the images in these"
+	echo "directories and pass them as arguments to feh periodically, based on the delay"
+#	echo
+#	echo "See \`doc multiwp\` for more information"
+}
+
+# use getopts to parse options
+while getopts ":d:hfm:sv" option; do
+	case "${option}" in
+		d)
+			sleep_delay="$OPTARG"
+			;;
+		h)
+			help
+			exit 0
+			;;
+		f)
+			fake=1
+			;;
+		m)
+			monitors="$OPTARG"
+			;;
+		s)
+			single=1
+			;;
+		v)
+			verbose=1
+			;;
+		\?)
+			echo "$bin: invalid option -$OPTARG"
+			echo
+			exit 1
+			;;
+		:)
+			echo "$bin: option -$OPTARG requires an argument"
+			echo
+			exit 1
+			;;
+	esac
+done
+
+if [ $verbose -eq 1 ]
+then
+	echo "fake = $fake"
+	echo "sleep_delay = $sleep_delay"
+	echo "monitors = $monitors"
+	echo "single = $single"
+	echo "verbose = $verbose"
+fi
+
+# the magic that allows us to access only the args in $@
+shift $((OPTIND-1))
+
+# here we will concatenate the directories passed as cmdline
+# args to the feh options string
+
+echo "$1"
+
+count=0
+
+if [ $single -ne 0 ]
+then
+# single directory mode; the same directory will be 
+# appended to fehargs to correspond with n monitors,
+# with n being passed as cmdline opt to -s
+
+	while [ "$count" -lt "$monitors" ]
+	do
+		fehargs="$fehargs$1 "
+		count="$((count+1))"
+	done
+else
+# multi directory mode; in this mode, each
+# mon has its own wallpaper dir, specified in order in the cmd
+# this is useful if eg. your mons have different resolutions
+
+	for a in "$@"
+	do
+		if [ "$verbose" -eq 1 ]
+		then
+			echo "arg $count = $a"
+		fi
+
+		fehargs="$fehargs$a "
+
+		count="$((count+1))"
+	done
+fi
+
+if [ "$verbose" -eq 1 ]
+then
+	echo "fehargs = $fehargs"
+fi
+
+# main loop
+# TODO: make it so that a running instance can be exited using end_loop
+while [ "$end_loop" -eq 0 ]
+do
+	if [ "$verbose" -eq 1 ]
+	then
+		loopcount="$((loopcount+1))"
+		echo "entered main loop $loopcount times"
+	fi
+	
+	# actually set the wallpapers
+	# don't do this if we were invoked in 'fake' mode
+	if [ "$fake" -eq 0 ]
+	then
+		feh $fehargs
+	fi
+	
+	sleep "$sleep_delay"
+done

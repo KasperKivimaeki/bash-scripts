@@ -1,0 +1,13 @@
+#!/bin/bash
+
+bin=$(basename $0)
+
+if [ "$#" -ne 1 ]; then
+	echo "$bin: invalid number of arguments"
+	echo "there must be one commit message"
+	exit
+fi
+
+git add .
+git commit -m "$1"
+git push origin master
