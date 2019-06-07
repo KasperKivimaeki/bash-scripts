@@ -9,7 +9,7 @@ fake=0
 
 function help()
 {
-	echo "Usage: $bin PACKAGE ..."
+	echo "Usage: $bin [OPTION ...] PACKAGE ..."
 	echo
 	echo "downloads, builds, and installs packages from the AUR"
 	echo
@@ -24,7 +24,7 @@ function help()
 	echo "After downloading and extracting a package tarball, the user may edit PKGBUILD."
 	echo "$bin uses \$EDITOR to do this."
 	echo
-	echo "After PKGBUILD has been dealt with, the user has the option to not build a package." 
+	echo "After PKGBUILD has been inspected, the user has the option to not build a package." 
 	echo "This is useful if the user wants to manually check or edit a source file."
 }
 
