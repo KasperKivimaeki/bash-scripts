@@ -70,8 +70,6 @@ source_config() {
 # if there are no arguments, the script was invoked incorrectly
 if [ $# -lt 1 ]; then
 	echo "$bin: not enough parameters"
-	echo
-	help
 	exit 1
 fi
 

@@ -14,8 +14,8 @@ function help()
 	echo "downloads, builds, and installs packages from the AUR"
 	echo
 	echo "OPTIONS:"
-	echo "	-a ARGS		arguments to pass to makepkg when building (default \"-si\")"
-	echo "	-d DIR		use DIR as the package root (default \"\$HOME/pkg\")"
+	echo "	-a ARGS		arguments to pass to makepkg when building (default '$makepkgargs')"
+	echo "	-d DIR		use DIR as the package root (default '\$HOME/pkg')"
 	echo "	-h		display this text and exit"
 	echo
 	echo "Any number of packages may be specified as arguments."
@@ -68,49 +68,46 @@ cd "$pkg_root/"
 
 old="$OLDPWD"
 
-for pkg_name in "$@"
-do
-	echo "fetching \"$pkg_name\""
+for pkg_name in "$@"; do
+	echo "fetching '$pkg_name'"
 		
-	# probably a better way to get this file?
+	# probably a better way to get / verify this file?
 	curl -L -O "$url/$pkg_name.tar.gz" 2> /dev/null
 
 	tar xvf "$pkg_name.tar.gz" 2> /dev/null
 
 	if [ $? -ne 0 ]; then
-		echo "$bin: package \"$pkg_name\" does not exist or has been removed"
+		echo "$bin: package '$pkg_name' does not exist or has been removed"
 		rm "$pkg_name.tar.gz"
-		cd "$old"
 		continue
 	fi
+	# end block
 
 	echo -n "extraction complete. delete tarball? [y/N]: "
 
 	read -r line
 	if [ "$line" = "y" ]; then
-		rm -v "$pkg_root/$pkg_name.tar.gz"
+		rm -v "$pkg_name.tar.gz"
 	fi
-
-	cd "$pkg_name/"
 
 	echo -n "edit PKGBUILD? [Y,n]: "
 
 	read -r line
 	if [ "$line" = "y" -o -z "$line" ]; then
-		"$EDITOR" PKGBUILD
+		"$EDITOR" "$pkg_name/PKGBUILD"
 	fi
 
-	echo -n "continue building \"$pkg_name?\" [Y/n]: "
+	echo -n "continue building '$pkg_name?' [Y/n]: "
 
 	read -r line
 	if [ "$line" = "n" ]; then
-		echo "package $pkg_name has NOT been built. you may edit source files in $pkg_root/$pkg_name"
+		echo "package '$pkg_name' has NOT been built. you may edit source files in '$pkg_root/$pkg_name'"
 		echo "run 'makepkg $makepkgargs' in that directory to build and install"
 		continue
 	fi
 
+	cd "$pkg_name/"
 	makepkg "$makepkgargs"
-	
 	cd "$pkg_root"
 	
 	echo -n "delete extracted package contents? [y/N]: "
